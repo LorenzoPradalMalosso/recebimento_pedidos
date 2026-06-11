@@ -28,7 +28,7 @@ class ItemPedido {
       id: map['id'],
       pedidoId: map['pedidoId'], 
       produtoId: map['produtoId'], 
-      quantidade: map['quantidadeId'],
+      quantidade: map['quantidade'],
       precoUnitario: map['precoUnitario']
     );
   }
