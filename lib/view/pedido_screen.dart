@@ -101,7 +101,7 @@ class _PedidoScreenState extends State<PedidoScreen> {
                           "${item["quantidade"]} x ${_formatarPreco(item["precoUnitario"])}",
                         ),
                         trailing: SizedBox(
-                          width: 144,
+                          width: 170,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
