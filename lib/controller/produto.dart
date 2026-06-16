@@ -23,12 +23,6 @@ class ProdutoController {
   }
 
   Future<Produto?> obterProdutoPorId(int id) async {
-    final produtos = await listarProdutos();
-    for (var produto in produtos) {
-      if (produto.id == id) {
-        return produto;
-      }
-    }
-    return null;
+    return _dbHelper.getProdutoPorId(id);
   }
 }

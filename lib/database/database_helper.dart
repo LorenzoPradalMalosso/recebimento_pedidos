@@ -22,8 +22,8 @@ class DatabaseHelper {
   Database? _database; // Privado
 
   // get database
-  Future<Database> get database async{
-    if(_database != null) return _database!;
+  Future<Database> get database async {
+    if (_database != null) return _database!;
     _database = await _initDb();
     return _database!;
   }
@@ -83,32 +83,35 @@ class DatabaseHelper {
       (await database).insert("produtos", produto.toMap());
 
   Future<List<Produto>> getProdutos() async {
-    final List<Map<String, dynamic>> maps =
-        await (await database).query(
+    final List<Map<String, dynamic>> maps = await (await database).query(
       "produtos",
       orderBy: "nome ASC",
     );
 
-    return List.generate(
-      maps.length,
-      (i) => Produto.fromMap(maps[i]),
-    );
+    return List.generate(maps.length, (i) => Produto.fromMap(maps[i]));
   }
 
-  Future<int> updateProduto(Produto produto) async =>
-      (await database).update(
-        "produtos",
-        produto.toMap(),
-        where: "id = ?",
-        whereArgs: [produto.id],
-      );
+  Future<Produto?> getProdutoPorId(int id) async {
+    final List<Map<String, dynamic>> maps = await (await database).query(
+      "produtos",
+      where: "id = ?",
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return Produto.fromMap(maps.first);
+  }
+
+  Future<int> updateProduto(Produto produto) async => (await database).update(
+    "produtos",
+    produto.toMap(),
+    where: "id = ?",
+    whereArgs: [produto.id],
+  );
 
   Future<int> deleteProduto(int id) async =>
-      (await database).delete(
-        "produtos",
-        where: "id = ?",
-        whereArgs: [id],
-      );
+      (await database).delete("produtos", where: "id = ?", whereArgs: [id]);
 
   // ==========================
   // CRUD PEDIDOS
@@ -118,32 +121,47 @@ class DatabaseHelper {
       (await database).insert("pedidos", pedido.toMap());
 
   Future<List<Pedido>> getPedidos() async {
-    final List<Map<String, dynamic>> maps =
-        await (await database).query(
+    final List<Map<String, dynamic>> maps = await (await database).query(
       "pedidos",
       orderBy: "data DESC",
     );
 
-    return List.generate(
-      maps.length,
-      (i) => Pedido.fromMap(maps[i]),
-    );
+    return List.generate(maps.length, (i) => Pedido.fromMap(maps[i]));
   }
 
-  Future<int> updatePedido(Pedido pedido) async =>
-      (await database).update(
-        "pedidos",
-        pedido.toMap(),
-        where: "id = ?",
-        whereArgs: [pedido.id],
-      );
+  Future<Pedido?> getPedidoEmAndamento() async {
+    final List<Map<String, dynamic>> maps = await (await database).query(
+      "pedidos",
+      where: "status = ?",
+      whereArgs: ["Em andamento"],
+      orderBy: "id DESC",
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return Pedido.fromMap(maps.first);
+  }
+
+  Future<List<Pedido>> getPedidosFinalizados() async {
+    final List<Map<String, dynamic>> maps = await (await database).query(
+      "pedidos",
+      where: "status = ?",
+      whereArgs: ["Finalizado"],
+      orderBy: "data DESC",
+    );
+
+    return List.generate(maps.length, (i) => Pedido.fromMap(maps[i]));
+  }
+
+  Future<int> updatePedido(Pedido pedido) async => (await database).update(
+    "pedidos",
+    pedido.toMap(),
+    where: "id = ?",
+    whereArgs: [pedido.id],
+  );
 
   Future<int> deletePedido(int id) async =>
-      (await database).delete(
-        "pedidos",
-        where: "id = ?",
-        whereArgs: [id],
-      );
+      (await database).delete("pedidos", where: "id = ?", whereArgs: [id]);
 
   // ==========================
   // CRUD ITENS DO PEDIDO
@@ -153,16 +171,50 @@ class DatabaseHelper {
       (await database).insert("itensPedido", item.toMap());
 
   Future<List<ItemPedido>> getItensPorPedido(int pedidoId) async {
-    final List<Map<String, dynamic>> maps =
-        await (await database).query(
+    final List<Map<String, dynamic>> maps = await (await database).query(
       "itensPedido",
       where: "pedidoId = ?",
       whereArgs: [pedidoId],
     );
 
-    return List.generate(
-      maps.length,
-      (i) => ItemPedido.fromMap(maps[i]),
+    return List.generate(maps.length, (i) => ItemPedido.fromMap(maps[i]));
+  }
+
+  Future<ItemPedido?> getItemPorPedidoProduto(
+    int pedidoId,
+    int produtoId,
+  ) async {
+    final List<Map<String, dynamic>> maps = await (await database).query(
+      "itensPedido",
+      where: "pedidoId = ? AND produtoId = ?",
+      whereArgs: [pedidoId, produtoId],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return ItemPedido.fromMap(maps.first);
+  }
+
+  Future<List<Map<String, dynamic>>> getItensDetalhadosPorPedido(
+    int pedidoId,
+  ) async {
+    return (await database).rawQuery(
+      '''
+      SELECT
+        itensPedido.id,
+        itensPedido.pedidoId,
+        itensPedido.produtoId,
+        itensPedido.quantidade,
+        itensPedido.precoUnitario,
+        produtos.nome AS produtoNome,
+        produtos.descricao AS produtoDescricao,
+        produtos.categoria AS produtoCategoria
+      FROM itensPedido
+      INNER JOIN produtos ON produtos.id = itensPedido.produtoId
+      WHERE itensPedido.pedidoId = ?
+      ORDER BY produtos.nome ASC
+      ''',
+      [pedidoId],
     );
   }
 
@@ -175,9 +227,5 @@ class DatabaseHelper {
       );
 
   Future<int> deleteItemPedido(int id) async =>
-      (await database).delete(
-        "itensPedido",
-        where: "id = ?",
-        whereArgs: [id],
-      );
+      (await database).delete("itensPedido", where: "id = ?", whereArgs: [id]);
 }
